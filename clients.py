@@ -13,6 +13,10 @@ session_mutex = Lock()
 
 global session
 session = Session()
+session.headers = {
+    "keep-alive" : "true",
+    "timeout" : "3",
+}
 
 global packet_number
 packet_number=0
@@ -34,10 +38,33 @@ def get_session():
         if session is None:
             print("Session Started")
             session = Session()
+            session.headers = {
+                "keep-alive" : "true",
+                "timeout" : "3"
+            }
     return session
 
 
 def reset_session():
+    global session
+    if session is not None:
+        reset_number = increment_reset_counter()
+        print(f"Session Reset #{reset_number}")
+        session.close()
+
+
+def get_session_x():
+    global session
+    if session is None:
+        print("Session Started")
+        session = Session(headers={
+            "keep-alive" : "true",
+            "timeout" : "3",
+        })
+    return session
+
+
+def reset_session_x():
     global session
     with session_mutex:
         if session is not None:
@@ -56,19 +83,30 @@ def get_packet_number():
 def exec(timeout=3):
     try:
         response = get_session().get("http://127.0.0.1:8080",
-                               data=str(get_packet_number()),
-                               timeout=timeout)
+                            data=str(get_packet_number()),
+                            timeout=timeout)
         print(response.text)
     except Exception as ex:
         print(ex)
         reset_session()
 
 
+def exec_x(timeout=3):
+    try:
+        response = get_session_x().get("http://127.0.0.1:8080",
+                            data=str(get_packet_number()),
+                            timeout=timeout)
+        print(response.text)
+    except Exception as ex:
+        print(ex)
+        reset_session_x()
+
+
 def proc(timeout=3):
     while True:
         # sleep(1)
-        t = Thread(target=exec,
-                   args=[timeout])
+        t = Thread(target=exec_x,
+                args=[timeout])
         t.start()
 
 
@@ -86,11 +124,10 @@ if __name__=="__main__":
     parser.add_argument("--timeout", type=int)
     args = parser.parse_args()
 
-    proc1 = Thread(target=proc, args=[args.timeout])
-    proc1.start()
-
-    proc2 = Thread(target=proc, args=[args.timeout])
-    proc2.start()
+    Thread(target=proc, args=[args.timeout]).start()
+    Thread(target=proc, args=[args.timeout]).start()
+    Thread(target=proc, args=[args.timeout]).start()
 
     sleep(10)
+    exit_handler()
     _exit(0)
