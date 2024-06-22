@@ -8,7 +8,9 @@ app = Flask(__name__)
 @app.route("/", methods=['GET', 'POST'])
 def hello_world():
     print(request.data.decode())
-    sleep(randint(1,10))
+    pause = randint(1,5)
+    print(f"pause: {pause}")
+    sleep(pause)
     return request.data
 
 
