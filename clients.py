@@ -13,10 +13,10 @@ session_mutex = Lock()
 
 global session
 session = Session()
-session.headers = {
-    "keep-alive" : "true",
-    "timeout" : "3",
-}
+session.headers.update({
+    "Connection" : "keep-alive",
+    "keep-alive" : "timeout=3. max=100"
+})
 
 global packet_number
 packet_number=0
@@ -34,16 +34,18 @@ def increment_reset_counter():
 
 def get_session():
     global session
-    with session_mutex:
-        if session is None:
-            print("Session Started")
-            session = Session()
-            session.headers = {
-                "keep-alive" : "true",
-                "timeout" : "3"
-            }
+    if session is None:
+        print("Session Started")
+        session = Session()
+        session.headers.update({
+            "Connection" : "keep-alive",
+            "keep-alive" : "timeout=3. max=100"
+        })
     return session
 
+def get_session_x():
+    with session_mutex:
+        return get_session()
 
 def reset_session():
     global session
@@ -52,25 +54,9 @@ def reset_session():
         print(f"Session Reset #{reset_number}")
         session.close()
 
-
-def get_session_x():
-    global session
-    if session is None:
-        print("Session Started")
-        session = Session(headers={
-            "keep-alive" : "true",
-            "timeout" : "3",
-        })
-    return session
-
-
 def reset_session_x():
-    global session
     with session_mutex:
-        if session is not None:
-            reset_number = increment_reset_counter()
-            print(f"Session Reset #{reset_number}")
-            session.close()
+        reset_session()
 
 
 def get_packet_number():
@@ -128,6 +114,6 @@ if __name__=="__main__":
     Thread(target=proc, args=[args.timeout]).start()
     Thread(target=proc, args=[args.timeout]).start()
 
-    sleep(10)
+    sleep(5)
     exit_handler()
     _exit(0)
